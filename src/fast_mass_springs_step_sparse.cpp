@@ -19,10 +19,28 @@ void fast_mass_springs_step_sparse(
 {
   //////////////////////////////////////////////////////////////////////////////
   // Replace with your code
+  igl::matlab_format();
+  
+  Eigen::MatrixXd y = Eigen::MatrixXd::Identity(V.rows(), 3);
+  Eigen::MatrixXd d = Eigen::MatrixXd::Identity(E.rows(), 3);
+  Eigen::MatrixXd penalty = Eigen::MatrixXd::Identity(V.rows(), 3);
+  Eigen::Vector3d E_i, E_j;
+  
+  double w = 1e10;
+  y = pow(delta_t, -2) * M * ( 2 * Ucur - Uprev ) + fext;
+  penalty = w * C.transpose() * C * V;
+
+  Unext = Ucur;
   for(int iter = 0;iter < 50;iter++)
   {
-    const Eigen::MatrixXd l = Ucur;
-    Unext = prefactorization.solve(l);
+    d = Eigen::MatrixXd::Identity(E.rows(), 3);
+    for(int i = 0; i < E.rows(); i++) {
+      E_i = Unext.row(E.row(i).x());
+      E_j = Unext.row(E.row(i).y());
+      d.row(i) = r[i] * (E_i - E_j).normalized();
+    }
+    const Eigen::MatrixXd b = k * A.transpose() * d  + y + penalty;
+    Unext = prefactorization.solve(b);
   }
   //////////////////////////////////////////////////////////////////////////////
 }
